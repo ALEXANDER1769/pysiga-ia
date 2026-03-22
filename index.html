@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PYSIGA - Panel de Inteligencia Ganadera</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #27ae60; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--primary); }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { border-bottom: 2px solid var(--accent); padding-bottom: 10px; font-size: 24px; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        textarea { width: 100%; height: 200px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical; margin-bottom: 20px; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        button { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-ai { background: var(--accent); color: white; flex: 1; min-width: 200px; }
+        .btn-ai:hover { background: #219150; transform: translateY(-2px); }
+        .btn-clear { background: #95a5a6; color: white; }
+        #resultado { margin-top: 30px; padding: 20px; background: #f9f9f9; border-left: 5px solid var(--accent); border-radius: 4px; white-space: pre-wrap; line-height: 1.6; min-height: 100px; }
+        .loading { color: #2980b9; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🧠 Analizador PYSIGA con Gemini IA</h1>
+    <p>Pega aquí tus reportes de pesaje, producción o cualquier dato que desees analizar.</p>
+
+    <label for="inputIA">Datos para análisis:</label>
+    <textarea id="inputIA" placeholder="Ejemplo: 'Analiza este lote de 50 animales en engorde. Pesaron 300kg promedio hace un mes y hoy están en 335kg. ¿Es buen rendimiento?'"></textarea>
+
+    <div class="btn-group">
+        <button class="btn-ai" onclick="ejecutarAnalisis()">🚀 Ejecutar Análisis con IA</button>
+        <button class="btn-clear" onclick="limpiar()">Borrar</button>
+    </div>
+
+    <div id="resultado">El resultado del análisis aparecerá aquí...</div>
+</div>
+
+<script>
+    async function ejecutarAnalisis() {
+        const texto = document.getElementById('inputIA').value;
+        const divRes = document.getElementById('resultado');
+
+        if (!texto.trim()) {
+            alert("Por favor, ingresa algún dato para analizar.");
+            return;
+        }
+
+        divRes.innerHTML = '<span class="loading">Consultando a la IA, por favor espera...</span>';
+
+        try {
+            // URL de TU Worker en Cloudflare
+            const urlWorker = 'https://pysiga.d-alexjose.workers.dev';
+
+            const response = await fetch(urlWorker, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accion: "analisisIA", // Esta es la acción que definimos en el Worker
+                    texto: texto
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+                // Si Gemini devuelve Markdown (negritas, listas), esto lo hará legible
+                divRes.innerText = data.resultado;
+            } else {
+                divRes.innerHTML = `<span style="color:red">Error: ${data.error}</span>`;
+            }
+
+        } catch (error) {
+            divRes.innerHTML = `<span style="color:red">Error de conexión: No se pudo contactar al Worker.</span>`;
+            console.error("Error:", error);
+        }
+    }
+
+    function limpiar() {
+        document.getElementById('inputIA').value = '';
+        document.getElementById('resultado').innerText = 'El resultado del análisis aparecerá aquí...';
+    }
+</script>
+
+</body>
+</html>
